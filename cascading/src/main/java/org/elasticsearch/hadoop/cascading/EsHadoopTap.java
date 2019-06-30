@@ -18,13 +18,6 @@
  */
 package org.elasticsearch.hadoop.cascading;
 
-import java.io.IOException;
-import java.util.Properties;
-
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.RecordReader;
-
 import cascading.flow.Flow;
 import cascading.flow.FlowProcess;
 import cascading.tap.SinkMode;
@@ -34,14 +27,17 @@ import cascading.tap.hadoop.io.HadoopTupleEntrySchemeIterator;
 import cascading.tuple.Fields;
 import cascading.tuple.TupleEntryCollector;
 import cascading.tuple.TupleEntryIterator;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.RecordReader;
+
+import java.io.IOException;
+import java.util.Properties;
 
 /**
  * Hadoop-based Cascading Tap.
- *
- * @deprecated 6.6.0 - Cascading Integration will be removed in a future release
  */
 @SuppressWarnings("rawtypes")
-@Deprecated
 class EsHadoopTap extends Tap<JobConf, RecordReader, OutputCollector> {
 
     private static final long serialVersionUID = 7910041489511719399L;

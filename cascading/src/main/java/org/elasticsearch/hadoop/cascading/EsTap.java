@@ -18,10 +18,14 @@
  */
 package org.elasticsearch.hadoop.cascading;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Properties;
-
+import cascading.flow.Flow;
+import cascading.flow.FlowElement;
+import cascading.flow.FlowProcess;
+import cascading.tap.SinkMode;
+import cascading.tap.Tap;
+import cascading.tuple.Fields;
+import cascading.tuple.TupleEntryCollector;
+import cascading.tuple.TupleEntryIterator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -38,24 +42,16 @@ import org.elasticsearch.hadoop.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cascading.flow.Flow;
-import cascading.flow.FlowElement;
-import cascading.flow.FlowProcess;
-import cascading.tap.SinkMode;
-import cascading.tap.Tap;
-import cascading.tuple.Fields;
-import cascading.tuple.TupleEntryCollector;
-import cascading.tuple.TupleEntryIterator;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Properties;
 
 /**
  * Cascading Tap backed by ElasticSearch. Can be used as a source and/or sink, for both local and Hadoop (local or not) flows.
  * If no fields are specified or are associated with the incoming tuple, the Tap will create name each field "field[num]" - this allows the document to be parsed by ES but will most likely conflict with the
  * existing mapping for the given index.
- *
- * @deprecated 6.6.0 - Cascading Integration will be removed in a future release
  */
-@SuppressWarnings({ "rawtypes", "unchecked" })
-@Deprecated
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class EsTap extends Tap<Object, Object, Object> {
 
     private static final long serialVersionUID = 2062780701366901965L;
@@ -227,6 +223,7 @@ public class EsTap extends Tap<Object, Object, Object> {
     /**
      * If Kerberos Security is enabled for Hadoop and Elasticsearch, this function will securely contact Elasticsearch
      * using Kerberos to authenticate, and retrieve a delegation token for use by worker processes on the cluster.
+     *
      * @param flowConnectorProperties The runtime properties for the Hadoop Flow Connector. Hadoop settings will also be loaded from
      *                                the classpath.
      */

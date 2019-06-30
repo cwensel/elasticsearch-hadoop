@@ -18,21 +18,21 @@
  */
 package org.elasticsearch.hadoop.cascading;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Properties;
-
+import cascading.flow.FlowProcess;
+import cascading.tap.SinkMode;
+import cascading.tap.Tap;
+import cascading.tuple.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.elasticsearch.hadoop.EsHadoopIllegalStateException;
 import org.elasticsearch.hadoop.cfg.ConfigurationOptions;
 import org.elasticsearch.hadoop.cfg.FieldPresenceValidation;
 import org.elasticsearch.hadoop.cfg.Settings;
-import org.elasticsearch.hadoop.rest.SearchRequestBuilder;
-import org.elasticsearch.hadoop.rest.query.QueryUtils;
 import org.elasticsearch.hadoop.rest.Resource;
 import org.elasticsearch.hadoop.rest.RestRepository;
 import org.elasticsearch.hadoop.rest.ScrollQuery;
+import org.elasticsearch.hadoop.rest.SearchRequestBuilder;
+import org.elasticsearch.hadoop.rest.query.QueryUtils;
 import org.elasticsearch.hadoop.serialization.ScrollReader;
 import org.elasticsearch.hadoop.serialization.ScrollReaderConfigBuilder;
 import org.elasticsearch.hadoop.serialization.builder.JdkValueReader;
@@ -42,21 +42,13 @@ import org.elasticsearch.hadoop.serialization.dto.mapping.MappingUtils;
 import org.elasticsearch.hadoop.util.EsMajorVersion;
 import org.elasticsearch.hadoop.util.StringUtils;
 
-import cascading.flow.FlowProcess;
-import cascading.tap.SinkMode;
-import cascading.tap.Tap;
-import cascading.tuple.Fields;
-import cascading.tuple.TupleEntryCollector;
-import cascading.tuple.TupleEntryIterator;
-import cascading.tuple.TupleEntrySchemeCollector;
-import cascading.tuple.TupleEntrySchemeIterator;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Properties;
 
 /**
  * Local Cascading Tap.
- *
- * @deprecated 6.6.0 - Cascading Integration will be removed in a future release
  */
-@Deprecated
 class EsLocalTap extends Tap<Properties, ScrollQuery, Object> {
 
     private static final long serialVersionUID = 8644631529427137615L;
@@ -105,7 +97,7 @@ class EsLocalTap extends Tap<Properties, ScrollQuery, Object> {
             if (validation.isRequired()) {
                 MappingUtils.validateMapping(fields, mapping, validation, log);
             }
-            
+
             EsMajorVersion esVersion = settings.getInternalVersionOrThrow();
             Resource read = new Resource(settings, true);
             SearchRequestBuilder queryBuilder =
