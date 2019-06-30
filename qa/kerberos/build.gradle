@@ -27,17 +27,12 @@ import org.elasticsearch.hadoop.gradle.fixture.hadoop.conf.RoleConfiguration
 import org.elasticsearch.hadoop.gradle.fixture.hadoop.conf.ServiceConfiguration
 import org.elasticsearch.hadoop.gradle.fixture.hadoop.conf.SettingsContainer
 import org.elasticsearch.hadoop.gradle.fixture.hadoop.tasks.HadoopMRJob
-import org.elasticsearch.hadoop.gradle.fixture.hadoop.tasks.HiveBeeline
-import org.elasticsearch.hadoop.gradle.fixture.hadoop.tasks.PigScript
-import org.elasticsearch.hadoop.gradle.fixture.hadoop.tasks.SparkApp
 
 apply plugin: 'es.hadoop.build'
-apply plugin: 'scala'
 
 configurations {
     kdcFixture
     cascadingDeps
-    stormDeps
 }
 
 boolean localRepo = project.getProperties().containsKey("localRepo")
@@ -45,15 +40,10 @@ boolean localRepo = project.getProperties().containsKey("localRepo")
 dependencies {
     compile project(":elasticsearch-hadoop-mr")
     compile project(":elasticsearch-hadoop-cascading")
-    compile project(":elasticsearch-storm")
-
-    compile 'org.scala-lang:scala-library:2.11.8'
-    compile project(":elasticsearch-spark-20")
 
     if (!localRepo) {
         // These try to pull in the elasticsearch jar, but when running with a local repo it is not available
         compile project(":elasticsearch-hadoop-mr").sourceSets.itest.runtimeClasspath
-        compile project(":elasticsearch-storm").sourceSets.itest.runtimeClasspath
     }
 
     kdcFixture project(':test:fixtures:minikdc')
@@ -67,15 +57,6 @@ dependencies {
         exclude group: 'junit'
     }
     cascadingDeps("cascading:cascading-hadoop:$cascadingVersion")
-
-    stormDeps('commons-httpclient:commons-httpclient:3.0.1') {
-        exclude group: 'junit'
-    }
-    stormDeps("org.codehaus.jackson:jackson-mapper-asl:${project.ext.jacksonVersion}")
-    stormDeps("org.codehaus.jackson:jackson-core-asl:${project.ext.jacksonVersion}")
-    stormDeps('commons-codec:commons-codec:1.4') {
-        exclude group: 'junit'
-    }
 }
 
 // =============================================================================
@@ -112,22 +93,6 @@ if (disableTests) {
         configurations.cascadingDeps.collect { dep -> zipTree(dep).matching{pattern ->
             pattern.exclude("META-INF/*")
         }}
-    }
-    
-    // Build uber storm jar for testing Storm remotely (es-hadoop + es-storm + qa tests)
-    Jar qaKerberosStormJar = project.tasks.create('kerberosStormJar', Jar)
-    qaKerberosStormJar.dependsOn(project.rootProject.tasks.getByName('jar'))
-    qaKerberosStormJar.dependsOn(project.rootProject.tasks.getByName('hadoopTestingJar'))
-    qaKerberosStormJar.classifier = 'storm-testing'
-    
-    // Add projects to the storm testing uber-jar
-    [project, project(":elasticsearch-hadoop-mr"), project(":elasticsearch-storm")].forEach { proj ->
-        qaKerberosStormJar.from(proj.sourceSets.test.output)
-        qaKerberosStormJar.from(proj.sourceSets.main.output)
-        qaKerberosStormJar.from(proj.sourceSets.itest.output)
-    }
-    qaKerberosStormJar.from {
-        configurations.stormDeps.collect { dep -> zipTree(dep) }
     }
     
     // =============================================================================
@@ -368,25 +333,6 @@ if (disableTests) {
             }
         }
     }
-    config.service('spark')
-    config.service('hive') { ServiceConfiguration s ->
-        s.addSystemProperty("java.security.krb5.conf", krb5Conf.toString())
-        s.addSetting('hive.server2.authentication', 'kerberos')
-        s.addSetting('hive.server2.authentication.kerberos.principal', "$hivePrincipalName$realm")
-        s.addSetting('hive.server2.authentication.kerberos.keytab', "$hiveKeytab")
-    //    s.addSetting('hive.server2.logging.operation.level', "VERBOSE")
-        s.addSetting('yarn.app.mapreduce.am.command-opts', "-Djava.security.krb5.conf=${krb5Conf.toString()}")
-        s.addSetting('mapreduce.map.java.opts', "-Djava.security.krb5.conf=${krb5Conf.toString()}")
-        s.addSetting('mapreduce.reduce.java.opts', "-Djava.security.krb5.conf=${krb5Conf.toString()}")
-    }
-    config.service('pig') { ServiceConfiguration s ->
-        s.addSetting('java.security.krb5.conf', krb5Conf.toString())
-        s.addSetting('hadoop.security.krb5.principal', "$clientPrincipal$realm")
-        s.addSetting('hadoop.security.krb5.keytab', clientKeytab.toString())
-        s.addSetting('yarn.app.mapreduce.am.command-opts', "-Djava.security.krb5.conf=${krb5Conf.toString()}")
-        s.addSetting('mapreduce.map.java.opts', "-Djava.security.krb5.conf=${krb5Conf.toString()}")
-        s.addSetting('mapreduce.reduce.java.opts', "-Djava.security.krb5.conf=${krb5Conf.toString()}")
-    }
     config.addDependency(jar)
     config.addDependency(testingJar)
     
@@ -521,139 +467,6 @@ if (disableTests) {
     esCluster.addTask(mrReadData)
     
     // =============================================================================
-    // Spark Jobs
-    // =============================================================================
-    
-    // Run the Spark job to load data to ES. Ensure Kerberos settings are available.
-    SparkApp sparkLoadData = config.createClusterTask('sparkLoadData', SparkApp.class) {
-        clusterConfiguration = config
-        dependsOn(copyData)
-    //    deployModeCluster()
-    //    principal = clientPrincipal + realm
-    //    keytab = clientKeytab.toString()
-        jobJar = jar.archivePath
-        libJars.add(testingJar.archivePath)
-        jobClass = 'org.elasticsearch.hadoop.qa.kerberos.spark.LoadToES'
-        jobSettings([
-                'spark.es.resource': 'qa_kerberos_spark_data/_doc',
-                'spark.es.nodes': 'localhost:9500',
-                'spark.es.security.authentication': 'kerberos',
-                'spark.es.net.spnego.auth.elasticsearch.principal': "${esPrincipal}${realm}",
-                'spark.load.field.names': 'number,name,url,picture,@timestamp,tag',
-                'spark.yarn.am.extraJavaOptions': "-Djava.security.krb5.conf=${krb5Conf.toString()}",
-                'spark.driver.extraJavaOptions': "-Djava.security.krb5.conf=${krb5Conf.toString()}",
-                'spark.executor.extraJavaOptions': "-Djava.security.krb5.conf=${krb5Conf.toString()}"
-        ])
-        env.put('SPARK_SUBMIT_OPTS', "-Djava.security.krb5.conf=${krb5Conf.toString()} " +
-                "-Dtest.krb5.principal=$clientPrincipal$realm " +
-                "-Dtest.krb5.keytab=${clientKeytab.toString()}")
-        args = ['/data/artists/artists.dat']
-    }
-    esCluster.addTask(sparkLoadData)
-    
-    // Run the Spark job to load data to ES. Ensure Kerberos settings are available.
-    SparkApp sparkReadData = config.createClusterTask('sparkReadData', SparkApp.class) {
-        clusterConfiguration = config
-        dependsOn(sparkLoadData)
-    //    deployModeCluster()
-    //    principal = clientPrincipal + realm
-    //    keytab = clientKeytab.toString()
-        jobJar = jar.archivePath
-        libJars.add(testingJar.archivePath)
-        jobClass = 'org.elasticsearch.hadoop.qa.kerberos.spark.ReadFromES'
-        jobSettings([
-                'spark.es.resource': 'qa_kerberos_spark_data/_doc',
-                'spark.es.nodes': 'localhost:9500',
-                'spark.es.security.authentication': 'kerberos',
-                'spark.es.net.spnego.auth.elasticsearch.principal': "${esPrincipal}${realm}",
-                'spark.yarn.am.extraJavaOptions': "-Djava.security.krb5.conf=${krb5Conf.toString()}",
-                'spark.driver.extraJavaOptions': "-Djava.security.krb5.conf=${krb5Conf.toString()}",
-                'spark.executor.extraJavaOptions': "-Djava.security.krb5.conf=${krb5Conf.toString()}"
-        ])
-        env.put('SPARK_SUBMIT_OPTS', "-Djava.security.krb5.conf=${krb5Conf.toString()} " +
-                "-Dtest.krb5.principal=$clientPrincipal$realm " +
-                "-Dtest.krb5.keytab=${clientKeytab.toString()}")
-        args = ['/data/output/spark']
-    }
-    esCluster.addTask(sparkReadData)
-    
-    // =============================================================================
-    // Hive Jobs
-    // =============================================================================
-    
-    // Replace the regular beeline script with our own shimmed one. All we do is perform a keytab login and
-    // delegate on regularly. This is easier than re-implementing most of beeline.
-    Copy patchBeeline = config.createClusterTask('patchBeeline', Copy.class) {
-        InstanceConfiguration i = config.service('hive').role('hiveserver').instance(0)
-        ServiceDescriptor hive = i.getServiceDescriptor()
-        Object lazyEvalBeelineScript = "${->i.getBaseDir().toPath().resolve(hive.homeDirName(i)).resolve(hive.scriptDir(i)).resolve('ext').toString()}"
-        String patchedBeeline = resourceDir.toPath().resolve('hive').resolve('patches').resolve('1.2.2').resolve('beeline.sh').toString()
-        // Just in case any of the directories in Hive are shifted around, before running the fixture, we resolve
-        // the path to the beeline ext script lazily.
-        from patchedBeeline
-        into lazyEvalBeelineScript
-        setDuplicatesStrategy(DuplicatesStrategy.INCLUDE)
-    }
-    
-    HiveBeeline hiveLoadData = config.createClusterTask('hiveLoadData', HiveBeeline.class) {
-        clusterConfiguration = config
-        dependsOn(jar, setupUsers, copyData, patchBeeline)
-        hivePrincipal = hivePrincipalName + realm
-        script = new File(resourceDir, 'hive/load_to_es.sql')
-        libJars.add(testingJar.archivePath)
-        env.putAll([
-                'HADOOP_CLIENT_OPTS':
-                        "-Djava.security.krb5.conf=${krb5Conf.toString()} " +
-                        "-Dtest.krb5.principal=$clientPrincipal$realm " +
-                        "-Dtest.krb5.keytab=${clientKeytab.toString()} ",
-                'TEST_LIB': jar.archivePath.toString()
-        ])
-    }
-    esCluster.addTask(hiveLoadData)
-    
-    HiveBeeline hiveReadData = config.createClusterTask('hiveReadData', HiveBeeline.class) {
-        clusterConfiguration = config
-        dependsOn(hiveLoadData)
-        hivePrincipal = hivePrincipalName + realm
-        script = new File(resourceDir, 'hive/read_from_es.sql')
-        libJars.add(testingJar.archivePath)
-        env.putAll([
-                'HADOOP_CLIENT_OPTS':
-                        "-Djava.security.krb5.conf=${krb5Conf.toString()} " +
-                                "-Dtest.krb5.principal=$clientPrincipal$realm " +
-                                "-Dtest.krb5.keytab=${clientKeytab.toString()} ",
-                'TEST_LIB': jar.archivePath.toString()
-        ])
-    }
-    esCluster.addTask(hiveReadData)
-    
-    // =============================================================================
-    // Pig Jobs
-    // =============================================================================
-    
-    PigScript pigLoadData = config.createClusterTask('pigLoadData', PigScript.class) {
-        clusterConfiguration = config
-        dependsOn(jar, setupUsers, copyData)
-        script = new File(resourceDir, 'pig/load_to_es.pig')
-        libJars.add(testingJar.archivePath)
-        env = [
-                'PIG_OPTS': "-Djava.security.krb5.conf=${krb5Conf.toString()}"
-        ]
-    }
-    esCluster.addTask(pigLoadData)
-    
-    PigScript pigReadData = config.createClusterTask('pigReadData', PigScript.class) {
-        clusterConfiguration = config
-        dependsOn(pigLoadData)
-        script = new File(resourceDir, 'pig/read_from_es.pig')
-        libJars.add(testingJar.archivePath)
-        env = [
-                'PIG_OPTS': "-Djava.security.krb5.conf=${krb5Conf.toString()}"
-        ]
-    }
-    esCluster.addTask(pigReadData)
-    
-    // =============================================================================
     // Cascading Jobs
     // =============================================================================
     
@@ -724,9 +537,6 @@ if (disableTests) {
     
     Map<String, Task> readJobs = [
             'mr': mrReadData,
-            'spark': sparkReadData,
-            'hive': hiveReadData,
-            'pig': pigReadData,
             'cascading': cascadingReadData
     ]
     
