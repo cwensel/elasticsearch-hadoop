@@ -1,9 +1,0 @@
-{
-    "data" : {
-        "properties" : {
-            "&t" : {
-                "type" : "date"
-            }
-        }
-    }
-}
