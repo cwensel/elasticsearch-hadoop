@@ -19,6 +19,12 @@
 
 package org.elasticsearch.hadoop.qa.kerberos;
 
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,12 +32,6 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AbstractClusterVerificationTests {
@@ -42,7 +42,8 @@ public class AbstractClusterVerificationTests {
         params.add(new Object[]{"mr",        "part-m-", 345, true});
         params.add(new Object[]{"spark",     "part-",   345, true});
         params.add(new Object[]{"hive",      "000000_0",     345, false});
-        params.add(new Object[]{"pig",       "part-m-", 345, true});
+        params.add(new Object[]{"pig",       "part-m-00000", 345, true});
+        params.add(new Object[]{"cascading", "part-00000",   345, true});
         return params;
     }
 

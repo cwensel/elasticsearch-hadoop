@@ -18,15 +18,14 @@
  */
 package org.elasticsearch.hadoop.cfg;
 
-import java.util.Properties;
-
 import org.apache.hadoop.conf.Configuration;
 import org.elasticsearch.hadoop.EsHadoopIllegalArgumentException;
 
+import java.util.Properties;
+
 /**
  * Factory for loading settings based on various configuration objects, such as Properties or Hadoop configuration.
- * The factory main role is to minimize the number of dependencies required at compilation time in the event that ES-Hadoop is running
- * in a non-Hadoop oriented environment.
+ * The factory main role is to minimize the number of dependencies required at compilation time (such as cascading-local vs Hadoop environments).
  */
 public class HadoopSettingsManager implements SettingsManager<Object> {
 
