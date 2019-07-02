@@ -50,11 +50,8 @@ import java.util.Properties;
  * Cascading Tap backed by ElasticSearch. Can be used as a source and/or sink, for both local and Hadoop (local or not) flows.
  * If no fields are specified or are associated with the incoming tuple, the Tap will create name each field "field[num]" - this allows the document to be parsed by ES but will most likely conflict with the
  * existing mapping for the given index.
- *
- * @deprecated 6.6.0 - Cascading Integration will be removed in a future release
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
-@Deprecated
 public class EsTap extends Tap<Object, Object, Object> {
 
     private static final long serialVersionUID = 2062780701366901965L;
