@@ -77,7 +77,7 @@ class EsLocalScheme extends Scheme<Properties, ScrollQuery, Object, Object[], Ob
     }
 
     @Override
-    public void sourcePrepare(FlowProcess<Properties> flowProcess, SourceCall<Object[], ScrollQuery> sourceCall) throws IOException {
+    public void sourcePrepare(FlowProcess<? extends Properties> flowProcess, SourceCall<Object[], ScrollQuery> sourceCall) throws IOException {
         super.sourcePrepare(flowProcess, sourceCall);
 
         Object[] context = new Object[SRC_CTX_SIZE];
@@ -88,7 +88,7 @@ class EsLocalScheme extends Scheme<Properties, ScrollQuery, Object, Object[], Ob
     }
 
     @Override
-    public void sourceCleanup(FlowProcess<Properties> flowProcess, SourceCall<Object[], ScrollQuery> sourceCall) throws IOException {
+    public void sourceCleanup(FlowProcess<? extends Properties> flowProcess, SourceCall<Object[], ScrollQuery> sourceCall) throws IOException {
         // in case of a source there's no local client so do all reporting here
         report(sourceCall.getInput().stats(), flowProcess);
         report(sourceCall.getInput().repository().stats(), flowProcess);
@@ -99,11 +99,11 @@ class EsLocalScheme extends Scheme<Properties, ScrollQuery, Object, Object[], Ob
     }
 
     @Override
-    public void sinkCleanup(FlowProcess<Properties> flowProcess, SinkCall<Object[], Object> sinkCall) throws IOException {
+    public void sinkCleanup(FlowProcess<? extends Properties> flowProcess, SinkCall<Object[], Object> sinkCall) throws IOException {
         cleanupClient(flowProcess);
     }
 
-    private void cleanupClient(FlowProcess<Properties> flowProcess) throws IOException {
+    private void cleanupClient(FlowProcess<? extends Properties> flowProcess) throws IOException {
         if (client != null) {
             client.close();
             report(client.stats(), flowProcess);
@@ -111,7 +111,7 @@ class EsLocalScheme extends Scheme<Properties, ScrollQuery, Object, Object[], Ob
         }
     }
 
-    private void report(Stats stats, FlowProcess<Properties> flowProcess) {
+    private void report(Stats stats, FlowProcess<? extends Properties> flowProcess) {
         // report current stats
         for (Counter count : Counter.ALL) {
             flowProcess.increment(count, count.get(stats));
@@ -119,7 +119,7 @@ class EsLocalScheme extends Scheme<Properties, ScrollQuery, Object, Object[], Ob
     }
 
     @Override
-    public void sinkPrepare(FlowProcess<Properties> flowProcess, SinkCall<Object[], Object> sinkCall) throws IOException {
+    public void sinkPrepare(FlowProcess<? extends Properties> flowProcess, SinkCall<Object[], Object> sinkCall) throws IOException {
         super.sinkPrepare(flowProcess, sinkCall);
 
         Object[] context = new Object[SINK_CTX_SIZE];
@@ -129,12 +129,12 @@ class EsLocalScheme extends Scheme<Properties, ScrollQuery, Object, Object[], Ob
     }
 
     @Override
-    public void sourceConfInit(FlowProcess<Properties> flowProcess, Tap<Properties, ScrollQuery, Object> tap, Properties conf) {
+    public void sourceConfInit(FlowProcess<? extends Properties> flowProcess, Tap<Properties, ScrollQuery, Object> tap, Properties conf) {
         initClient(conf, true);
     }
 
     @Override
-    public void sinkConfInit(FlowProcess<Properties> flowProcess, Tap<Properties, ScrollQuery, Object> tap, Properties conf) {
+    public void sinkConfInit(FlowProcess<? extends Properties> flowProcess, Tap<Properties, ScrollQuery, Object> tap, Properties conf) {
         initClient(conf, false);
         InitializationUtils.checkIndexExistence(client);
     }
@@ -151,7 +151,7 @@ class EsLocalScheme extends Scheme<Properties, ScrollQuery, Object, Object[], Ob
 
     @SuppressWarnings("unchecked")
     @Override
-    public boolean source(FlowProcess<Properties> flowProcess, SourceCall<Object[], ScrollQuery> sourceCall) throws IOException {
+    public boolean source(FlowProcess<? extends Properties> flowProcess, SourceCall<Object[], ScrollQuery> sourceCall) throws IOException {
         ScrollQuery query = sourceCall.getInput();
 
         if (!query.hasNext()) {
@@ -196,7 +196,7 @@ class EsLocalScheme extends Scheme<Properties, ScrollQuery, Object, Object[], Ob
     }
 
     @Override
-    public void sink(FlowProcess<Properties> flowProcess, SinkCall<Object[], Object> sinkCall) throws IOException {
+    public void sink(FlowProcess<? extends Properties> flowProcess, SinkCall<Object[], Object> sinkCall) throws IOException {
         client.writeToIndex(sinkCall);
     }
 }

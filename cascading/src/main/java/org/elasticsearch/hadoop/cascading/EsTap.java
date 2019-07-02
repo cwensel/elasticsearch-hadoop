@@ -134,25 +134,25 @@ public class EsTap extends Tap<Object, Object, Object> {
     }
 
     @Override
-    public void sourceConfInit(FlowProcess<Object> flowProcess, Object conf) {
+    public void sourceConfInit(FlowProcess<? extends Object> flowProcess, Object conf) {
         initInnerTapIfNotSetFromFlowProcess(flowProcess);
         actualTap.sourceConfInit(flowProcess, conf);
     }
 
     @Override
-    public void sinkConfInit(FlowProcess<Object> flowProcess, Object conf) {
+    public void sinkConfInit(FlowProcess<? extends Object> flowProcess, Object conf) {
         initInnerTapIfNotSetFromFlowProcess(flowProcess);
         actualTap.sinkConfInit(flowProcess, conf);
     }
 
     @Override
-    public TupleEntryIterator openForRead(FlowProcess<Object> flowProcess, Object input) throws IOException {
+    public TupleEntryIterator openForRead(FlowProcess<? extends Object> flowProcess, Object input) throws IOException {
         initInnerTapIfNotSetFromFlowProcess(flowProcess);
         return actualTap.openForRead(flowProcess, input);
     }
 
     @Override
-    public TupleEntryCollector openForWrite(FlowProcess<Object> flowProcess, Object output) throws IOException {
+    public TupleEntryCollector openForWrite(FlowProcess<? extends Object> flowProcess, Object output) throws IOException {
         initInnerTapIfNotSetFromFlowProcess(flowProcess);
         return actualTap.openForWrite(flowProcess, output);
     }
@@ -178,16 +178,11 @@ public class EsTap extends Tap<Object, Object, Object> {
     }
 
     @Override
-    public boolean isEquivalentTo(FlowElement element) {
-        return actualTap.isEquivalentTo(element);
-    }
-
-    @Override
     public String toString() {
         return (actualTap != null ? actualTap.toString() : getClass().getSimpleName() + "[\"" + getScheme() + "\"]" + "[not initialized]");
     }
 
-    private void initInnerTapIfNotSetFromFlowProcess(FlowProcess<Object> target) {
+    private void initInnerTapIfNotSetFromFlowProcess(FlowProcess<? extends Object> target) {
         initInnerTapIfNotSet(target, "cascading.flow.hadoop.HadoopFlowProcess");
     }
 

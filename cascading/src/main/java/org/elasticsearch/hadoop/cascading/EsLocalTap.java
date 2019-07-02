@@ -69,7 +69,7 @@ class EsLocalTap extends Tap<Properties, ScrollQuery, Object> {
     }
 
     @Override
-    public TupleEntryIterator openForRead(FlowProcess<Properties> flowProcess, ScrollQuery input) throws IOException {
+    public TupleEntryIterator openForRead(FlowProcess<? extends Properties> flowProcess, ScrollQuery input) throws IOException {
         if (input == null) {
             // get original copy
             Settings settings = CascadingUtils.addDefaultsToSettings(CascadingUtils.extractOriginalProperties(flowProcess.getConfigCopy()), tapProperties, log);
@@ -116,7 +116,7 @@ class EsLocalTap extends Tap<Properties, ScrollQuery, Object> {
     }
 
     @Override
-    public TupleEntryCollector openForWrite(FlowProcess<Properties> flowProcess, Object output) throws IOException {
+    public TupleEntryCollector openForWrite(FlowProcess<? extends Properties> flowProcess, Object output) throws IOException {
         return new TupleEntrySchemeCollector<Properties, Object>(flowProcess, getScheme(), output);
     }
 

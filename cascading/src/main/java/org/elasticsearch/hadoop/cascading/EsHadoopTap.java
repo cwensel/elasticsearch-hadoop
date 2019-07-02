@@ -27,6 +27,7 @@ import cascading.tap.hadoop.io.HadoopTupleEntrySchemeIterator;
 import cascading.tuple.Fields;
 import cascading.tuple.TupleEntryCollector;
 import cascading.tuple.TupleEntryIterator;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.RecordReader;
@@ -38,7 +39,7 @@ import java.util.Properties;
  * Hadoop-based Cascading Tap.
  */
 @SuppressWarnings("rawtypes")
-class EsHadoopTap extends Tap<JobConf, RecordReader, OutputCollector> {
+class EsHadoopTap extends Tap<Configuration, RecordReader, OutputCollector> {
 
     private static final long serialVersionUID = 7910041489511719399L;
 
@@ -55,37 +56,37 @@ class EsHadoopTap extends Tap<JobConf, RecordReader, OutputCollector> {
     }
 
     @Override
-    public void flowConfInit(Flow<JobConf> flow) {
+    public void flowConfInit(Flow<Configuration> flow) {
         CascadingUtils.addSerializationToken(flow.getConfig());
     }
 
     @Override
-    public TupleEntryIterator openForRead(FlowProcess<JobConf> flowProcess, RecordReader input) throws IOException {
+    public TupleEntryIterator openForRead(FlowProcess<? extends Configuration> flowProcess, RecordReader input) throws IOException {
         return new HadoopTupleEntrySchemeIterator(flowProcess, this, input);
     }
 
     @Override
-    public TupleEntryCollector openForWrite(FlowProcess<JobConf> flowProcess, OutputCollector output) throws IOException {
+    public TupleEntryCollector openForWrite(FlowProcess<? extends Configuration> flowProcess, OutputCollector output) throws IOException {
         return new HadoopTupleEntrySchemeCollector(flowProcess, this, output);
     }
 
     @Override
-    public boolean createResource(JobConf conf) throws IOException {
+    public boolean createResource(Configuration conf) throws IOException {
         return false;
     }
 
     @Override
-    public boolean deleteResource(JobConf conf) throws IOException {
+    public boolean deleteResource(Configuration conf) throws IOException {
         return false;
     }
 
     @Override
-    public boolean resourceExists(JobConf conf) throws IOException {
+    public boolean resourceExists(Configuration conf) throws IOException {
         return true;
     }
 
     @Override
-    public long getModifiedTime(JobConf conf) throws IOException {
+    public long getModifiedTime(Configuration conf) throws IOException {
         return 0;
     }
 }

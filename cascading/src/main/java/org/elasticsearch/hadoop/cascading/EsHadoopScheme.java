@@ -28,10 +28,9 @@ import cascading.tuple.Tuple;
 import cascading.tuple.TupleEntry;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.RecordReader;
+import org.apache.hadoop.mapred.*;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -62,7 +61,7 @@ import static org.elasticsearch.hadoop.cascading.CascadingValueWriter.SINK_CTX_S
  * Cascading Scheme handling
  */
 @SuppressWarnings("rawtypes")
-class EsHadoopScheme extends Scheme<JobConf, RecordReader, OutputCollector, Object[], Object[]> {
+class EsHadoopScheme extends Scheme<Configuration, RecordReader, OutputCollector, Object[], Object[]> {
 
     private static final long serialVersionUID = 4304172465362298925L;
 
@@ -93,7 +92,7 @@ class EsHadoopScheme extends Scheme<JobConf, RecordReader, OutputCollector, Obje
     }
 
     @Override
-    public void sourcePrepare(FlowProcess<JobConf> flowProcess, SourceCall<Object[], RecordReader> sourceCall) throws IOException {
+    public void sourcePrepare(FlowProcess<? extends Configuration> flowProcess, SourceCall<Object[], RecordReader> sourceCall) throws IOException {
         super.sourcePrepare(flowProcess, sourceCall);
 
         Object[] context = new Object[SRC_CTX_SIZE];
@@ -107,14 +106,14 @@ class EsHadoopScheme extends Scheme<JobConf, RecordReader, OutputCollector, Obje
     }
 
     @Override
-    public void sourceCleanup(FlowProcess<JobConf> flowProcess, SourceCall<Object[], RecordReader> sourceCall) throws IOException {
+    public void sourceCleanup(FlowProcess<? extends Configuration> flowProcess, SourceCall<Object[], RecordReader> sourceCall) throws IOException {
         super.sourceCleanup(flowProcess, sourceCall);
 
         sourceCall.setContext(null);
     }
 
     @Override
-    public void sinkPrepare(FlowProcess<JobConf> flowProcess, SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
+    public void sinkPrepare(FlowProcess<? extends Configuration> flowProcess, SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
         super.sinkPrepare(flowProcess, sinkCall);
 
         Object[] context = new Object[SINK_CTX_SIZE];
@@ -124,19 +123,19 @@ class EsHadoopScheme extends Scheme<JobConf, RecordReader, OutputCollector, Obje
         sinkCall.setContext(context);
     }
 
-    public void sinkCleanup(FlowProcess<JobConf> flowProcess, SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
+    public void sinkCleanup(FlowProcess<? extends Configuration> flowProcess, SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
         super.sinkCleanup(flowProcess, sinkCall);
 
         sinkCall.setContext(null);
     }
 
-    private void obtainToken(Settings esSettings, JobConf jobConf) {
+    private void obtainToken(Settings esSettings, Configuration jobConf) {
         UserProvider provider = UserProvider.create(esSettings);
         if (provider.isEsKerberosEnabled()) {
             try {
                 UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
                 User user = provider.getUser();
-                Credentials credentials = jobConf.getCredentials();
+                Credentials credentials = ((JobConf) jobConf).getCredentials();
                 for (EsToken esToken : user.getAllEsTokens()) {
                     Token<EsTokenIdentifier> token = EsTokenIdentifier.createTokenFrom(esToken);
                     credentials.addToken(token.getService(), token);
@@ -148,8 +147,8 @@ class EsHadoopScheme extends Scheme<JobConf, RecordReader, OutputCollector, Obje
     }
 
     @Override
-    public void sourceConfInit(FlowProcess<JobConf> flowProcess, Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
-        conf.setInputFormat(EsInputFormat.class);
+    public void sourceConfInit(FlowProcess<? extends Configuration> flowProcess, Tap<Configuration, RecordReader, OutputCollector> tap, Configuration conf) {
+        conf.setClass("mapred.input.format.class", EsInputFormat.class, InputFormat.class);
         Settings set = loadSettings(conf, true);
 
         InitializationUtils.setUserProviderIfNotSet(set, HadoopUserProvider.class, log);
@@ -165,9 +164,8 @@ class EsHadoopScheme extends Scheme<JobConf, RecordReader, OutputCollector, Obje
     }
 
     @Override
-    public void sinkConfInit(FlowProcess<JobConf> flowProcess, Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
-
-        conf.setOutputFormat(EsOutputFormat.class);
+    public void sinkConfInit(FlowProcess<? extends Configuration> flowProcess, Tap<Configuration, RecordReader, OutputCollector> tap, Configuration conf) {
+        conf.setClass("mapred.output.format.class", EsOutputFormat.class, OutputFormat.class);
         // define an output dir to prevent Cascading from setting up a TempHfs and overriding the OutputFormat
         Settings set = loadSettings(conf, false);
 
@@ -195,7 +193,7 @@ class EsHadoopScheme extends Scheme<JobConf, RecordReader, OutputCollector, Obje
 
     @SuppressWarnings("unchecked")
     @Override
-    public boolean source(FlowProcess<JobConf> flowProcess, SourceCall<Object[], RecordReader> sourceCall) throws IOException {
+    public boolean source(FlowProcess<? extends Configuration> flowProcess, SourceCall<Object[], RecordReader> sourceCall) throws IOException {
         Object[] context = sourceCall.getContext();
 
         if (!sourceCall.getInput().next(context[SRC_CTX_KEY], context[1])) {
@@ -244,7 +242,7 @@ class EsHadoopScheme extends Scheme<JobConf, RecordReader, OutputCollector, Obje
 
     @SuppressWarnings("unchecked")
     @Override
-    public void sink(FlowProcess<JobConf> flowProcess, SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
+    public void sink(FlowProcess<? extends Configuration> flowProcess, SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
         sinkCall.getOutput().collect(null, sinkCall);
     }
 }

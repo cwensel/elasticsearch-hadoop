@@ -29,13 +29,7 @@ import java.util.StringTokenizer;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.*;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
 import org.apache.hadoop.mapred.lib.IdentityReducer;
 import org.elasticsearch.hadoop.HdpBootstrap;
@@ -87,8 +81,8 @@ public class AbstractExtraMRTests {
     public static Collection<Object[]> configs() throws IOException {
         JobConf conf = HdpBootstrap.hadoopConfig();
 
-        conf.setInputFormat(SplittableTextInputFormat.class);
-        conf.setOutputFormat(EsOutputFormat.class);
+        conf.setClass("mapred.input.format.class", SplittableTextInputFormat.class, InputFormat.class);
+        conf.setClass("mapred.output.format.class", EsOutputFormat.class, OutputFormat.class);
         conf.setReducerClass(IdentityReducer.class);
         HadoopCfgUtils.setGenericOptions(conf);
         conf.setNumMapTasks(2);
@@ -196,8 +190,8 @@ public class AbstractExtraMRTests {
     private JobConf createReadJobConf() throws IOException {
         JobConf conf = HdpBootstrap.hadoopConfig();
 
-        conf.setInputFormat(EsInputFormat.class);
-        conf.setOutputFormat(PrintStreamOutputFormat.class);
+        conf.setClass("mapred.input.format.class", EsInputFormat.class, InputFormat.class);
+        conf.setClass("mapred.output.format.class", PrintStreamOutputFormat.class, OutputFormat.class);
         conf.setOutputKeyClass(Text.class);
         boolean type = random.nextBoolean();
         Class<?> mapType = (type ? MapWritable.class : LinkedMapWritable.class);

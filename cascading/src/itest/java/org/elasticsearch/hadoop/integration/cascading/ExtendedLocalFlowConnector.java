@@ -22,6 +22,7 @@ import cascading.flow.Flow;
 import cascading.flow.FlowDef;
 import cascading.flow.local.LocalFlowConnector;
 import cascading.stats.CascadingStats;
+import cascading.stats.FlowStats;
 import org.elasticsearch.hadoop.mr.Counter;
 import org.elasticsearch.hadoop.util.ReflectionUtils;
 
@@ -59,7 +60,7 @@ public class ExtendedLocalFlowConnector extends LocalFlowConnector {
     }
 
     private void printStats(Flow flow) {
-        CascadingStats stats = flow.getStats();
+        FlowStats stats = flow.getFlowStats();
         System.out.println("Cascading stats for " + Counter.class.getName());
         for (String counter : stats.getCountersFor(Counter.class)) {
             System.out.println(String.format("%s\t%s", counter, stats.getCounterValue(Counter.class.getName(), counter)));

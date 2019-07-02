@@ -28,6 +28,7 @@ import cascading.tap.Tap;
 import cascading.tuple.Tuple;
 import cascading.tuple.TupleEntryCollector;
 import cascading.tuple.TupleEntrySchemeCollector;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.JobConf;
 import org.elasticsearch.hadoop.Stream;
@@ -37,35 +38,35 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
 
-class HadoopPrintStreamTap extends SinkTap<JobConf, Object> implements Serializable {
+class HadoopPrintStreamTap extends SinkTap<Configuration, Object> implements Serializable {
 
     /** */
     private static final long serialVersionUID = 1L;
 
     private final Stream stream;
 
-    private static class SysoutScheme extends Scheme<JobConf, Object, Object, Object, Object> implements Serializable {
+    private static class SysoutScheme extends Scheme<Configuration, Object, Object, Object, Object> implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
         @Override
-        public void sourceConfInit(FlowProcess<JobConf> flowProcess, Tap<JobConf, Object, Object> tap, JobConf conf) {
+        public void sourceConfInit(FlowProcess<? extends  Configuration> flowProcess, Tap<Configuration, Object, Object> tap, Configuration conf) {
             // no-op
         }
 
         @Override
-        public void sinkConfInit(FlowProcess<JobConf> flowProcess, Tap<JobConf, Object, Object> tap, JobConf conf) {
+        public void sinkConfInit(FlowProcess<? extends  Configuration> flowProcess, Tap<Configuration, Object, Object> tap, Configuration conf) {
             // no-op
         }
 
         @Override
-        public boolean source(FlowProcess<JobConf> flowProcess, SourceCall<Object, Object> sourceCall) throws IOException {
+        public boolean source(FlowProcess<? extends  Configuration> flowProcess, SourceCall<Object, Object> sourceCall) throws IOException {
             // no-op
             return false;
         }
 
         @Override
-        public void sink(FlowProcess<JobConf> flowProcess, SinkCall<Object, Object> sinkCall) throws IOException {
+        public void sink(FlowProcess<? extends Configuration> flowProcess, SinkCall<Object, Object> sinkCall) throws IOException {
             Tuple tuple = sinkCall.getOutgoingEntry().getTuple();
             StringBuffer sb = new StringBuffer();
             for (Object object : tuple) {
@@ -97,27 +98,27 @@ class HadoopPrintStreamTap extends SinkTap<JobConf, Object> implements Serializa
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public TupleEntryCollector openForWrite(FlowProcess<JobConf> flowProcess, Object output) throws IOException {
+    public TupleEntryCollector openForWrite(FlowProcess<? extends Configuration> flowProcess, Object output) throws IOException {
         return new TupleEntrySchemeCollector(flowProcess, getScheme(), stream.stream());
     }
 
     @Override
-    public boolean createResource(JobConf conf) throws IOException {
+    public boolean createResource(Configuration conf) throws IOException {
         return true;
     }
 
     @Override
-    public boolean deleteResource(JobConf conf) throws IOException {
+    public boolean deleteResource(Configuration conf) throws IOException {
         return false;
     }
 
     @Override
-    public boolean resourceExists(JobConf conf) throws IOException {
+    public boolean resourceExists(Configuration conf) throws IOException {
         return true;
     }
 
     @Override
-    public long getModifiedTime(JobConf conf) throws IOException {
+    public long getModifiedTime(Configuration conf) throws IOException {
         return 0;
     }
 }

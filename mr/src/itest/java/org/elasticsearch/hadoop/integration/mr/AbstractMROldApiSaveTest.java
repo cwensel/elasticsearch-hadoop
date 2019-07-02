@@ -29,15 +29,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.TextInputFormat;
+import org.apache.hadoop.mapred.*;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
 import org.apache.hadoop.mapred.lib.IdentityReducer;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -124,8 +116,8 @@ public class AbstractMROldApiSaveTest {
     public static Collection<Object[]> configs() {
         JobConf conf = HdpBootstrap.hadoopConfig();
 
-        conf.setInputFormat(SplittableTextInputFormat.class);
-        conf.setOutputFormat(EsOutputFormat.class);
+        conf.setClass("mapred.input.format.class", SplittableTextInputFormat.class, InputFormat.class);
+        conf.setClass("mapred.output.format.class", EsOutputFormat.class, org.apache.hadoop.mapred.OutputFormat.class);
         conf.setReducerClass(IdentityReducer.class);
         HadoopCfgUtils.setGenericOptions(conf);
         conf.setNumMapTasks(2);

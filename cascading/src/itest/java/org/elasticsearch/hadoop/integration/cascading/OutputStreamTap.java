@@ -43,7 +43,7 @@ public class OutputStreamTap extends SinkTap<Properties, OutputStream> {
     }
 
     @Override
-    public TupleEntryCollector openForWrite(FlowProcess<Properties> flowProcess, OutputStream output)
+    public TupleEntryCollector openForWrite(FlowProcess<? extends Properties> flowProcess, OutputStream output)
             throws IOException {
         return new TupleEntrySchemeCollector<Properties, OutputStream>(flowProcess, getScheme(), os);
     }

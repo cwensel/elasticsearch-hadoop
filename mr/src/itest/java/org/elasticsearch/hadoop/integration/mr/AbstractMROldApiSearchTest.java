@@ -25,9 +25,7 @@ import java.util.Random;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.*;
 import org.elasticsearch.hadoop.HdpBootstrap;
 import org.elasticsearch.hadoop.QueryTestParams;
 import org.elasticsearch.hadoop.cfg.ConfigurationOptions;
@@ -192,8 +190,8 @@ public class AbstractMROldApiSearchTest {
     private JobConf createJobConf() throws IOException {
         JobConf conf = HdpBootstrap.hadoopConfig();
 
-        conf.setInputFormat(EsInputFormat.class);
-        conf.setOutputFormat(PrintStreamOutputFormat.class);
+        conf.setClass("mapred.input.format.class", EsInputFormat.class, InputFormat.class);
+        conf.setClass("mapred.output.format.class", PrintStreamOutputFormat.class, OutputFormat.class);
         conf.setOutputKeyClass(Text.class);
         boolean type = random.nextBoolean();
         Class<?> mapType = (type ? MapWritable.class : LinkedMapWritable.class);

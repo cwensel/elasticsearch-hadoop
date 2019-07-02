@@ -20,12 +20,14 @@ package org.elasticsearch.hadoop.integration.cascading;
 
 import cascading.flow.Flow;
 import cascading.stats.CascadingStats;
+import cascading.stats.FlowStats;
 import org.elasticsearch.hadoop.mr.Counter;
 import org.elasticsearch.hadoop.util.ReflectionUtils;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Collection;
 
 public abstract class StatsUtils {
 
@@ -46,7 +48,7 @@ public abstract class StatsUtils {
     }
 
     private static void printStats(Flow flow) {
-        CascadingStats stats = flow.getStats();
+        FlowStats stats = flow.getFlowStats();
         System.out.println("Cascading stats for " + Counter.class.getName());
         for (String counter : stats.getCountersFor(Counter.class)) {
             System.out.println(String.format("%s\t%s", counter, stats.getCounterValue(Counter.class.getName(), counter)));
