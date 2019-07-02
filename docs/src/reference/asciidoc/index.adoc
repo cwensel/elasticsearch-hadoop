@@ -4,18 +4,10 @@
 :ehtm: 	Elasticsearch for Apache Hadoop
 :eh: 	elasticsearch-hadoop
 :mr: 	Map/Reduce
-:sp:	Apache Spark
-:st:	Apache Storm
 :krb:   Kerberos
 :ey:	Elasticsearch on YARN
 :description: Reference documentation of {eh}
 :ver:	7.2.0
-:ver-d: 7.2.1-SNAPSHOT
-:es-v:	7.2.1-SNAPSHOT
-:sp-v:	2.2.0
-:st-v:	1.0.1
-:pg-v:	0.15.0
-:hv-v:	1.2.1
 :cs-v:	2.6.3
 
 include::{asciidoc-dir}/../../shared/versions72.asciidoc[]
