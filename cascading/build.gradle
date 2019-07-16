@@ -1,6 +1,7 @@
 apply plugin: 'es.hadoop.build.integration'
 
 description = "Elasticsearch Hadoop Cascading"
+group = 'io.superflow'
 
 evaluationDependsOn(':elasticsearch-hadoop-mr')
 
