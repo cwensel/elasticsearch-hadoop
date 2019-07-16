@@ -1,4 +1,3 @@
-
 apply plugin: 'es.hadoop.build.integration'
 
 description = "Elasticsearch Hadoop Cascading"
@@ -7,13 +6,14 @@ evaluationDependsOn(':elasticsearch-hadoop-mr')
 
 dependencies {
     provided(project(":elasticsearch-hadoop-mr"))
-    provided(project(path: ":elasticsearch-hadoop-mr", configuration:"compile"))
+    provided(project(path: ":elasticsearch-hadoop-mr", configuration: "compile"))
 
     testCompile project(":elasticsearch-hadoop-mr").sourceSets.test.runtimeClasspath
     itestCompile project(":elasticsearch-hadoop-mr").sourceSets.itest.runtimeClasspath
 }
 
 jar {
+    dependsOn << project(":elasticsearch-hadoop-mr").jar
     from(zipTree(project(":elasticsearch-hadoop-mr").jar.archivePath)) {
         include "org/elasticsearch/hadoop/**"
         include "esh-build.properties"
@@ -32,4 +32,84 @@ sourcesJar {
 dependencies {
     provided("cascading:cascading-hadoop:$cascadingVersion")
     provided("cascading:cascading-local:$cascadingVersion")
+}
+
+apply plugin: "io.spring.bintray"
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
+
+def currentBranch = System.properties['build.vcs.branch']
+def isFinalRelease = Boolean.getBoolean("${rootProject.name}.release.final") || currentBranch != null ? !currentBranch.contains('wip-') : false
+
+bintray {
+    bintrayUser = System.properties['publish.repo.userName']
+    bintrayKey = System.properties['publish.repo.password']
+
+    org = 'superflow'
+    repo = isFinalRelease ? 'release' : 'wip'
+
+    overrideOnUpload = true
+
+    publication = 'mavenJava'
+
+    licenses = ['Apache-2.0']
+    websiteUrl = 'http://github.com/cwensel/elasticsearch-hadoop'
+    issueTrackerUrl = 'http://github.com/cwensel/elasticsearch-hadoop/issues'
+    vcsUrl = 'http://github.com/cwensel/elasticsearch-hadoop.git'
+}
+
+task bintrayPublishBuild(dependsOn: [bintrayUpload, bintrayPublish]) {
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact sourcesJar
+            artifact javadocJar
+
+            from components.java
+
+            pom {
+                name = project.description
+                description = project.description
+                url = 'http://github.com/cwensel/elasticsearch-hadoop'
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'jbaiera'
+                        name = 'James Baiera'
+                        email = 'james.baiera@elastic.co'
+                    }
+                    developer {
+                        id = 'costin'
+                        name = 'Costin Leau'
+                        email = 'costin@elastic.co'
+                    }
+                    developer {
+                        id = 'cwensel'
+                        name = 'Chris K Wensel'
+                        email = 'chris@wensel.net'
+                    }
+                }
+                scm {
+                    url = 'http://github.com/cwensel/elasticsearch-hadoop'
+                }
+            }
+
+            pom.withXml {
+                Node pomNode = asNode()
+                pomNode.dependencies.'*'.findAll() {
+                    it.artifactId.text() == 'elasticsearch-hadoop-mr'
+                }.each() {
+                    it.parent().remove(it)
+                }
+            }
+        }
+    }
 }

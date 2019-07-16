@@ -67,11 +67,11 @@ dependencies {
 // Testing jars
 // =============================================================================
 
-// Disable the integration tests for Kerberos until we can find a solution to the failures due to + sign 
+// Disable the integration tests for Kerberos until we can find a solution to the failures due to + sign
 // in the file path on CI.
 boolean disableTests = true
 if (disableTests) {
-    // Disable the integration tests for Kerberos until we can find a solution to the failures due to + sign 
+    // Disable the integration tests for Kerberos until we can find a solution to the failures due to + sign
     // in the file path on CI.
     Test integrationTest = project.tasks.findByName('integrationTest') as Test
     integrationTest.setEnabled(false)
@@ -86,7 +86,7 @@ if (disableTests) {
     qaKerberosCascadingJar.dependsOn(project.rootProject.tasks.getByName('jar'))
     qaKerberosCascadingJar.dependsOn(project.rootProject.tasks.getByName('hadoopTestingJar'))
     qaKerberosCascadingJar.classifier = 'cascading-testing'
-    
+
     // Add projects and dependencies to the Cascading testing uber-jar
     [project, project(":elasticsearch-hadoop-mr"), project(":elasticsearch-hadoop-cascading")].forEach { proj ->
         qaKerberosCascadingJar.from(proj.sourceSets.test.output)
@@ -98,14 +98,14 @@ if (disableTests) {
             pattern.exclude("META-INF/*")
         }}
     }
-    
+
     // =============================================================================
     // Kerberos configuration
     // =============================================================================
-    
+
     String realm = '@BUILD.ELASTIC.CO'
     String hostPart = '/build.elastic.co'
-    
+
     String esPrincipal = 'HTTP' + hostPart
     String clientPrincipal = 'client' + hostPart
     String namenodePrincipal = 'nn' + hostPart
@@ -115,15 +115,15 @@ if (disableTests) {
     String historyServerPrincipal = 'jhs' + hostPart
     String mapredPrincipal = 'mapred' + hostPart
     String hivePrincipalName = 'hive' + hostPart
-    
+
     String esKeytabName = 'es.keytab'
     String clientKeytabName = 'client.keytab'
     String hadoopKeytabName = 'hadoop.keytab'
     String hiveKeytabName = 'hive.keytab'
-    
+
     Map users = ["client":"password", "gmarx":"swordfish"]
     Map<String, String> keytabUsers = [:]
-    
+
     keytabUsers.put(esPrincipal, esKeytabName)
     keytabUsers.put(clientPrincipal, clientKeytabName)
     keytabUsers.put('HTTP/hadoop.build.elastic.co', hadoopKeytabName)
@@ -134,7 +134,7 @@ if (disableTests) {
     keytabUsers.put(historyServerPrincipal, hadoopKeytabName)
     keytabUsers.put(mapredPrincipal, hadoopKeytabName)
     keytabUsers.put(hivePrincipalName, hiveKeytabName)
-    
+
     // Configure MiniKDC
     AntFixture kdcFixture = project.tasks.create('kdcFixture', AntFixture) {
         dependsOn project.configurations.kdcFixture
@@ -145,20 +145,20 @@ if (disableTests) {
             // it's ready, so we can just wait for the file to exist
             return fixture.portsFile.exists()
         }
-    
+
         final List<String> kdcFixtureArgs = []
-    
+
         // Add provisioning lines first for sys properties
         users.forEach { k, v -> kdcFixtureArgs.add("-Des.fixture.kdc.user.${k}.pwd=${v}") }
         keytabUsers.forEach { k, v -> kdcFixtureArgs.add("-Des.fixture.kdc.user.${k}.keytab=${v}") }
-    
+
         // Common options
         kdcFixtureArgs.add('org.elasticsearch.hadoop.test.fixture.minikdc.MiniKdcFixture')
         kdcFixtureArgs.add(baseDir.toString())
-    
+
         args kdcFixtureArgs.toArray()
     }
-    
+
     // KDC Fixture artifacts
     java.nio.file.Path fixtureDir = project.buildDir.toPath().resolve("fixtures").resolve("kdcFixture")
     java.nio.file.Path krb5Conf = fixtureDir.resolve("krb5.conf")
@@ -166,23 +166,23 @@ if (disableTests) {
     java.nio.file.Path clientKeytab = fixtureDir.resolve(clientKeytabName)
     java.nio.file.Path hadoopKeytab = fixtureDir.resolve(hadoopKeytabName)
     java.nio.file.Path hiveKeytab = fixtureDir.resolve(hiveKeytabName)
-    
+
     // =============================================================================
     // Elasticsearch cluster configuration
     // =============================================================================
-    
+
     // Configure ES with Kerberos Auth
     esCluster {
         clusterConf {
             dependsOn(kdcFixture)
-    
+
             // This may be needed if we ever run against java 9:
             // --add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED
-    
+
             // Set kerberos conf on JVM
             systemProperty("java.security.krb5.conf", krb5Conf.toString())
             //systemProperty("sun.security.krb5.debug", "true")
-    
+
             // force localhost IPv4 otherwise it is a chicken and egg problem where we need the keytab for the
             // hostname when starting the cluster but do not know the exact address that is first in the http
             // ports file
@@ -203,12 +203,12 @@ if (disableTests) {
             setting 'xpack.security.authc.realms.kerberos.krb5.remove_realm_name', 'false'
             // Configure API Key Realm
             setting 'xpack.security.authc.api_key.enabled', 'true'
-    
+
             setupCommand 'setupTestAdmin',
                     'bin/elasticsearch-users', 'useradd', "test_admin", '-p', 'x-pack-test-password', '-r', 'superuser'
-    
+
             extraConfigFile('es.keytab', esKeytab.toAbsolutePath())
-    
+
             // Override the wait condition; Do the same wait logic, but pass in the test credentials for the API
             waitCondition = { node, ant ->
                 File tmpFile = new File(node.cwd, 'wait.success')
@@ -222,7 +222,7 @@ if (disableTests) {
             }
         }
     }
-    
+
     // Configure Integration Test Task
     Test integrationTest = project.tasks.findByName('integrationTest') as Test
     integrationTest.dependsOn(kdcFixture)
@@ -233,15 +233,15 @@ if (disableTests) {
     integrationTest.systemProperty("es.net.http.auth.pass", "x-pack-test-password")
     integrationTest.systemProperty("tests.hive.principal", "${hivePrincipalName}${realm}")
     integrationTest.systemProperty("tests.hive.keytab", hiveKeytab.toString())
-    
+
     // Fixtures will be depending on the jar and test jar artifacts
     def jar = project.tasks.getByName('jar') as org.gradle.jvm.tasks.Jar
     def testingJar = project.rootProject.tasks.findByName('hadoopTestingJar') as Jar
-    
+
     // Need these for SSL items, test data, and scripts
     File resourceDir = project.sourceSets.main.resources.getSrcDirs().head()
     File mrItestResourceDir = project(":elasticsearch-hadoop-mr").sourceSets.itest.resources.getSrcDirs().head()
-    
+
     JavaExec setupUsers = project.tasks.create("setupUsers", JavaExec.class) {
         main = 'org.elasticsearch.hadoop.qa.kerberos.setup.SetupKerberosUsers'
         classpath = sourceSets.main.runtimeClasspath
@@ -254,18 +254,18 @@ if (disableTests) {
     }
     esCluster.addTask(setupUsers)
     integrationTest.dependsOn(setupUsers)
-    
+
     // =============================================================================
     // Hadoop test cluster configuration
     // =============================================================================
-    
+
     // Project instance available implicitly
     String prefix = "hadoopFixture"
     HadoopClusterConfiguration config = new HadoopClusterConfiguration(project, prefix)
-    
+
     // Hadoop cluster depends on KDC Fixture being up and running
     config.addDependency(kdcFixture)
-    
+
     config.service('hadoop') { ServiceConfiguration s ->
         s.addSystemProperty("java.security.krb5.conf", krb5Conf.toString())
         // Core Site Config
@@ -281,7 +281,7 @@ if (disableTests) {
             f.addSetting("hadoop.ssl.client.conf", "ssl-client.xml")
             f.addSetting("hadoop.proxyuser.hive.hosts", "*")
             f.addSetting("hadoop.proxyuser.hive.groups", "*")
-    
+
             // Add ES Security settings here because without them Spark will not obtain tokens
             f.addSetting('es.security.authentication', 'kerberos')
             f.addSetting('es.net.spnego.auth.elasticsearch.principal', "${esPrincipal}${realm}")
@@ -323,7 +323,7 @@ if (disableTests) {
             f.addSetting("mapreduce.jobhistory.keytab", "$hadoopKeytab")
             f.addSetting("yarn.resourcemanager.principal", "$resourceManagerPrincipal$realm")
         }
-    
+
         // Add the ES-Hadoop jar to the resource manager classpath so that it can load the token renewer implementation
         // for ES tokens. Otherwise, tokens may not be cancelled at the end of the job.
         s.role('resourcemanager') { RoleConfiguration r ->
@@ -336,7 +336,7 @@ if (disableTests) {
     }
     config.addDependency(jar)
     config.addDependency(testingJar)
-    
+
     // Create a task to use to leave the cluster online until a user provides input to tear it down.
     Task testCluster = project.tasks.create("testCluster")
     testCluster.doLast {
@@ -346,7 +346,7 @@ if (disableTests) {
     }
     esCluster.addTask(testCluster)
     config.addClusterTask(testCluster)
-    
+
     // We need to create a tmp directory in hadoop before history server does, because history server will set permissions
     // wrong.
     HadoopMRJob createTmp = config.service('hadoop').role('datanode').createClusterTask('createTmp', HadoopMRJob.class) {
@@ -362,7 +362,7 @@ if (disableTests) {
         ])
         args = ['-mkdir', '-p', '/tmp/hadoop-yarn/staging/history']
     }
-    
+
     HadoopMRJob prepareTmp = config.service('hadoop').role('datanode').createClusterTask('prepareTmp', HadoopMRJob.class) {
         clusterConfiguration = config
         // Run on namenode since the gateway is not yet set up
@@ -378,7 +378,7 @@ if (disableTests) {
         args = ['-chmod', '-R', '777', '/tmp']
     }
     config.service('hadoop').role('historyserver').addDependency(prepareTmp)
-    
+
     // We must create the data directory before copying test data. DfsCopy task would normally do this
     // automatically, but we have to wrap the fs shell for Kerberos.
     HadoopMRJob createDataDir = config.createClusterTask('createDataDir', HadoopMRJob.class) {
@@ -394,7 +394,7 @@ if (disableTests) {
         ])
         args = ['-mkdir', '-p', '/data/artists/']
     }
-    
+
     // Copy the test data to HDFS using the SecureFsShell instead of dfs copy. We could use the
     // DfsCopy task, but with Kerberos, we would have to kinit before running it. Instead we wrap.
     HadoopMRJob copyData = config.createClusterTask('copyData', HadoopMRJob.class) {
@@ -410,11 +410,11 @@ if (disableTests) {
         environmentVariables.put('HADOOP_ROOT_LOGGER','TRACE,console')
         args = ['-copyFromLocal', project.file(new File(mrItestResourceDir, 'artists.dat')), "/data/artists/artists.dat"]
     }
-    
+
     // =============================================================================
     // Map Reduce Jobs
     // =============================================================================
-    
+
     // Run the MR job to load data to ES. Ensure Kerberos settings are available.
     HadoopMRJob mrLoadData = config.createClusterTask('mrLoadData', HadoopMRJob.class) {
         clusterConfiguration = config
@@ -440,7 +440,7 @@ if (disableTests) {
         args = ['/data/artists/artists.dat']
     }
     esCluster.addTask(mrLoadData)
-    
+
     // Run the MR job to read data out of ES. Ensure Kerberos settings are available.
     HadoopMRJob mrReadData = config.createClusterTask('mrReadData', HadoopMRJob.class) {
         clusterConfiguration = config
@@ -465,11 +465,11 @@ if (disableTests) {
         args = ['/data/output/mr']
     }
     esCluster.addTask(mrReadData)
-    
+
     // =============================================================================
     // Cascading Jobs
     // =============================================================================
-    
+
     // Run the MR job to load data to ES. Ensure Kerberos settings are available.
     HadoopMRJob cascadingLoadData = config.createClusterTask('cascadingLoadData', HadoopMRJob.class) {
         clusterConfiguration = config
@@ -494,7 +494,7 @@ if (disableTests) {
         args = ['/data/artists/artists.dat']
     }
     esCluster.addTask(cascadingLoadData)
-    
+
     // Run the MR job to read data out of ES. Ensure Kerberos settings are available.
     HadoopMRJob cascadingReadData = config.createClusterTask('cascadingReadData', HadoopMRJob.class) {
         clusterConfiguration = config
@@ -519,11 +519,11 @@ if (disableTests) {
         args = ['/data/output/cascading']
     }
     esCluster.addTask(cascadingReadData)
-    
+
     // =============================================================================
     // Copy job outputs
     // =============================================================================
-    
+
     File outputDataDir = project.file(new File(project.buildDir, 'data'))
     Task createOutputDataDir = project.tasks.create("createOutputDataDir") {
         doLast {
@@ -534,11 +534,11 @@ if (disableTests) {
             outputDataDir.mkdirs()
         }
     }
-    
+
     Map<String, Task> readJobs = [
             'mr': mrReadData,
     ]
-    
+
     readJobs.forEach { integrationName, integrationReadTask ->
         // Copy the test data to HDFS using the SecureFsShell instead of dfs copy. We could use the
         // DfsCopy task, but with Kerberos, we would have to kinit before running it. Instead we wrap.
@@ -563,7 +563,7 @@ if (disableTests) {
         // disk
         integrationTest.dependsOn(copyOutputTask)
     }
-    
+
     // Finish cluster setup
     HadoopClusterFormationTasks.setup(project, config)
 }

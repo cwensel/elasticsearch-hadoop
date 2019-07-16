@@ -1,6 +1,17 @@
 
 description = 'Elasticsearch for Apache Hadoop'
 
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "io.spring.gradle:spring-bintray-plugin:0.11.1"
+  }
+}
+
 apply plugin: 'es.hadoop.build.root'
 
 defaultTasks 'build'
@@ -11,7 +22,7 @@ build {
 
 task wrapper(type: Wrapper) {
     description = 'Generates gradlew[.bat] scripts'
-    gradleVersion = '4.5'
+    gradleVersion = '4.10'
 }
 
 // Simple utility task to help with downloading artifacts and jars

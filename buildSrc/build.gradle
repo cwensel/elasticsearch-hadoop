@@ -23,12 +23,14 @@ if (qualifier.isEmpty() == false) {
     esVersion += "-" + qualifier
 }
 
+def currentBranch = System.properties[ 'build.vcs.branch' ]
+def buildNumber = System.getProperty( 'build.number', 'dev' ) // local dev or build server build
+ext.isFinalRelease = Boolean.getBoolean( "${rootProject.name}.release.final" ) || currentBranch != null ? !currentBranch.contains('wip-') : false
+
 // determine if we're building a snapshot or not (by default we will be)
-boolean snapshot = "true".equals(System.getProperty("build.snapshot", "true"))
-if (snapshot) {
+if (!isFinalRelease) {
     // we update the version property to reflect if we are building a snapshot or a release build
-    eshVersion += "-SNAPSHOT"
-    esVersion += "-SNAPSHOT"
+    eshVersion += "-wip-${buildNumber}"
 }
 
 props.put("eshadoop", eshVersion)
